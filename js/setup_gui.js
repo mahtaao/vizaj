@@ -34,13 +34,13 @@ const guiParams = {
     autoRotateSpeed: 2.0,
     linkDensity: .2,
 
-    backgroundColor: '#111133',
+    backgroundColor: '#ffffff',
     resetBackgroundColor: resetBackgroundColor,
 
     showExtraItem: false,
-    colorExtraItem: '#ffc0cb',
+    colorExtraItem: '#ffffff',
     resetExtraItemColor: () =>{
-        guiParams.colorExtraItem = '#ffc0cb';
+        guiParams.colorExtraItem = '#ffffff';
         updateExtraItemMaterial();
     },
     extraItemMeshShape: 'brain',

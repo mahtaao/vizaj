@@ -23,8 +23,8 @@ let transformControlHistoryToken;
 let transformControlsEnabled = false;
 
 const cortexMaterial = new THREE.MeshStandardMaterial({
-    color: '#ffc0cb',
-    opacity: 0.5,      // Set opacity level (0 = fully transparent, 1 = fully opaque)
+    color: '#ffffff',
+    opacity: 0.15,      // Set opacity level (0 = fully transparent, 1 = fully opaque)
     transparent: true, // Enable transparency
     side: THREE.DoubleSide,
     flatShading: false
