@@ -28,18 +28,19 @@ const guiParams = {
     loadMontageCsvFile: () => {csvNodePositionsInput.click();},
     loadMontageLabelsCsvFile: () => {csvNodeLabelsInput.click();},
     loadJson: () => {jsonInput.click()},
+    dualBrain: false, // New parameter to toggle between single and dual brain
 
     autoRotateCamera: false,
     autoRotateSpeed: 2.0,
     linkDensity: .2,
 
-    backgroundColor: '#111133',
+    backgroundColor: '#ffffff',
     resetBackgroundColor: resetBackgroundColor,
 
     showExtraItem: false,
-    colorExtraItem: '#ffc0cb',
+    colorExtraItem: '#ffffff',
     resetExtraItemColor: () =>{
-        guiParams.colorExtraItem = '#ffc0cb';
+        guiParams.colorExtraItem = '#ffffff';
         updateExtraItemMaterial();
     },
     extraItemMeshShape: 'brain',
@@ -228,8 +229,9 @@ function setupGui() {
     extraItemFolder.addColor(guiParams, 'colorExtraItem').name('Color').onChange(updateExtraItemMaterial).listen();
     extraItemFolder.add(guiParams, 'resetExtraItemColor').name('Reset color');
     extraItemFolder.add(guiParams, 'extraItemMeshShape',
-        ['brain', 'scalp', 'innerSkull', 'sphere', 'cube'])
+        ['brain', 'scalp', 'innerSkull', 'sphere', 'cube', 'dualBrain'])
         .name('Shape').onChange(updateExtraItemMesh);
+    extraItemFolder.add(guiParams, 'dualBrain').name('Dual Brain').onChange(updateExtraItemMesh); // Add toggle for dual brain
     const moveExtraItemFolder = extraItemFolder.addFolder('Move support');
     moveExtraItemFolder.add(guiParams, 'translateModeTransformControls').name('Translate');
     moveExtraItemFolder.add(guiParams, 'rotateModeTransformControls').name('Rotate');
