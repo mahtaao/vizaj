@@ -28,7 +28,6 @@ const guiParams = {
     loadMontageCsvFile: () => {csvNodePositionsInput.click();},
     loadMontageLabelsCsvFile: () => {csvNodeLabelsInput.click();},
     loadJson: () => {jsonInput.click()},
-    dualBrain: false, // New parameter to toggle between single and dual brain
 
     autoRotateCamera: false,
     autoRotateSpeed: 2.0,
@@ -231,7 +230,6 @@ function setupGui() {
     extraItemFolder.add(guiParams, 'extraItemMeshShape',
         ['brain', 'scalp', 'innerSkull', 'sphere', 'cube', 'dualBrain'])
         .name('Shape').onChange(updateExtraItemMesh);
-    extraItemFolder.add(guiParams, 'dualBrain').name('Dual Brain').onChange(updateExtraItemMesh); // Add toggle for dual brain
     const moveExtraItemFolder = extraItemFolder.addFolder('Move support');
     moveExtraItemFolder.add(guiParams, 'translateModeTransformControls').name('Translate');
     moveExtraItemFolder.add(guiParams, 'rotateModeTransformControls').name('Rotate');
