@@ -13,6 +13,7 @@ import { loadGltfModel } from './load_data.js';
 
 let extraItemMesh;
 let secondBrainMesh;
+let dualBrainGroup = null;
 
 let initExtraItemPosition = new Vector3(0,-13,0);
 let initExtraItemRotation = new Vector3(0,0,0);
@@ -124,10 +125,7 @@ function loadScalpModel(){
     return loadGltfModel(scalpMeshUrl, 'Scalp model');
 }
 
-function drawExtraItemModel(geometry) {
-    
-    console.log('geometry', geometry);
-    
+function drawExtraItemModel(geometry) {    
     let position = initExtraItemPosition;
     let rotation = initExtraItemRotation;
     let scale = initExtraItemScale;
@@ -139,10 +137,6 @@ function drawExtraItemModel(geometry) {
         scale = extraItemMesh.scale.clone();
         removeExtraItemMesh();
     }
-
-    console.log("444 position:", position);
-    console.log("444 rotation:", rotation);
-    console.log("444 scale:", scale);
 
     extraItemMesh = new THREE.Mesh( geometry, cortexMaterial );
     extraItemMesh.geometry.computeVertexNormals();
@@ -198,6 +192,12 @@ function removeExtraItemMesh(){
         deleteMesh(secondBrainMesh);
         secondBrainMesh = null;
     }
+
+        // Ensure the group is also cleaned up
+    if (dualBrainGroup) {
+        scene.remove(dualBrainGroup);
+        dualBrainGroup = null;
+    }
 }
 
 function updateExtraItemMaterial(){
@@ -229,31 +229,47 @@ function updateExtraItemMesh(){
     }
 }
 
-function toggleTransformControls(mode){
-    if (!extraItemMesh) return;
-
-    if (!transformControlsEnabled){
+function toggleTransformControls(mode) {
+    if (!extraItemMesh) { return; }
+    
+    if (!transformControlsEnabled) {
         if (guiParams.extraItemMeshShape === 'dualBrain' && secondBrainMesh) {
-            // Create group only for dual brain mode
-            const group = new THREE.Group();
-            group.add(extraItemMesh);
-            group.add(secondBrainMesh);
-            transformControls.attach(group);
+            // Create a group for dual brain mode
+            dualBrainGroup = new THREE.Group();
+            dualBrainGroup.add(extraItemMesh);
+            dualBrainGroup.add(secondBrainMesh);
+            
+            // Add the group to the scene
+            scene.add(dualBrainGroup);
+            
+            // Attach transform controls to the group
+            transformControls.attach(dualBrainGroup);
         } else {
             // Single brain mode
             transformControls.attach(extraItemMesh);
         }
         transformControlsEnabled = true;
-    }
-    else if (transformControls.mode == mode){
+    } else if (transformControls.mode == mode) {
         disableTransformControls();
     }
     transformControls.setMode(mode);
 }
 
-function disableTransformControls(){
-    if (transformControlsEnabled){
-        transformControls.detach( extraItemMesh );
+function disableTransformControls() {
+    if (transformControlsEnabled) {
+        transformControls.detach();
+        
+        // If we have a dual brain group, we need to handle it specially
+        if (dualBrainGroup) {
+            // Remove the meshes from the group but keep them in the scene
+            if (extraItemMesh) scene.add(extraItemMesh);
+            if (secondBrainMesh) scene.add(secondBrainMesh);
+            
+            // Remove the group from the scene
+            scene.remove(dualBrainGroup);
+            dualBrainGroup = null;
+        }
+        
         transformControlsEnabled = false;
     }
 }
