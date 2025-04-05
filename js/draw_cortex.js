@@ -12,6 +12,7 @@ import { deleteMesh } from './mesh_helper.js';
 import { loadGltfModel } from './load_data.js';
 
 let extraItemMesh;
+let secondBrainMesh;
 
 let initExtraItemPosition = new Vector3(0,-13,0);
 let initExtraItemRotation = new Vector3(0,0,0);
@@ -23,8 +24,8 @@ let transformControlHistoryToken;
 let transformControlsEnabled = false;
 
 const cortexMaterial = new THREE.MeshStandardMaterial({
-    color: '#ffc0cb',
-    opacity: 0.5,      // Set opacity level (0 = fully transparent, 1 = fully opaque)
+    color: '#ffffff',
+    opacity: 0.15,      // Set opacity level (0 = fully transparent, 1 = fully opaque)
     transparent: true, // Enable transparency
     side: THREE.DoubleSide,
     flatShading: false
@@ -52,16 +53,16 @@ function drawExtraItemModelWithOffset(geometry, newPosition) {
     console.log("222 rotation:", rotation);
     console.log("222 scale:", scale);
 
-    const extraItemMesh = new THREE.Mesh(geometry, cortexMaterial);
-    extraItemMesh.geometry.computeVertexNormals();
-
-    // Apply the new position
-    extraItemMesh.position.set(position.x, position.y, position.z);
-    extraItemMesh.rotation.set(rotation.x, rotation.y, rotation.z);
-    extraItemMesh.scale.set(scale.x, scale.y, scale.z);
+    secondBrainMesh = new THREE.Mesh(geometry, cortexMaterial.clone());
+    secondBrainMesh.geometry.computeVertexNormals();
     
-    scene.add(extraItemMesh);
-    console.log("Added second cortex model at:", extraItemMesh.position);
+    // Apply the position
+    secondBrainMesh.position.set(position.x, position.y, position.z);
+    secondBrainMesh.rotation.set(rotation.x, rotation.y, rotation.z);
+    secondBrainMesh.scale.set(scale.x, scale.y, scale.z);
+    
+    scene.add(secondBrainMesh);
+    console.log("Added second cortex model at:", secondBrainMesh.position);
 }
 
 
@@ -193,6 +194,10 @@ function removeExtraItemMesh(){
         deleteMesh(extraItemMesh);
         extraItemMesh = null;
     }
+    if (secondBrainMesh){
+        deleteMesh(secondBrainMesh);
+        secondBrainMesh = null;
+    }
 }
 
 function updateExtraItemMaterial(){
@@ -225,12 +230,22 @@ function updateExtraItemMesh(){
 }
 
 function toggleTransformControls(mode){
-    if (!extraItemMesh){return;}
+    if (!extraItemMesh) return;
+
     if (!transformControlsEnabled){
-        transformControls.attach( extraItemMesh );
+        if (guiParams.extraItemMeshShape === 'dualBrain' && secondBrainMesh) {
+            // Create group only for dual brain mode
+            const group = new THREE.Group();
+            group.add(extraItemMesh);
+            group.add(secondBrainMesh);
+            transformControls.attach(group);
+        } else {
+            // Single brain mode
+            transformControls.attach(extraItemMesh);
+        }
         transformControlsEnabled = true;
     }
-    else if ( transformControls.mode == mode){
+    else if (transformControls.mode == mode){
         disableTransformControls();
     }
     transformControls.setMode(mode);
