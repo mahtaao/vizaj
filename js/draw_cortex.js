@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { Vector3 } from 'three';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils';
 import { scene, transformControls,
     mouseButtonIsDown,
     cortexMeshUrl,
     innerSkullMeshUrl,
     scalpMeshUrl,
+    camera,
+    renderer,
+    controls,
      GLOBAL_LAYER } from "../public/main.js";
 import { guiParams } from './setup_gui';
 import { deleteMesh } from './mesh_helper.js';
@@ -13,7 +17,6 @@ import { loadGltfModel } from './load_data.js';
 
 let extraItemMesh;
 let secondBrainMesh;
-let dualBrainGroup = null;
 
 let initExtraItemPosition = new Vector3(0,-13,0);
 let initExtraItemRotation = new Vector3(0,0,0);
@@ -31,6 +34,68 @@ const cortexMaterial = new THREE.MeshStandardMaterial({
     side: THREE.DoubleSide,
     flatShading: false
 });
+
+let dualBrainGroup = null;
+
+// Create separate transform controls for each brain
+let mainBrainTransformControls = null;
+let secondBrainTransformControls = null;
+let mainBrainControlsEnabled = false;
+let secondBrainControlsEnabled = false;
+
+// Initialize both transform controls
+function initTransformControls() {
+  try {
+    const domElement = document.getElementById('renderer');
+    if (!domElement) {
+      console.error("Could not find renderer DOM element");
+      return;
+    }
+    
+    // Main brain controls
+    mainBrainTransformControls = new TransformControls(camera, domElement);
+    // Use an anonymous function to properly handle the event
+    mainBrainTransformControls.addEventListener('change', function() {
+      renderer.render(scene, camera); // Explicitly call render
+    });
+    mainBrainTransformControls.addEventListener('dragging-changed', function(event) {
+      controls.enabled = !event.value;
+    });
+    scene.add(mainBrainTransformControls);
+    
+    // Second brain controls
+    secondBrainTransformControls = new TransformControls(camera, domElement);
+    secondBrainTransformControls.addEventListener('change', function() {
+      renderer.render(scene, camera); // Explicitly call render
+    });
+    secondBrainTransformControls.addEventListener('dragging-changed', function(event) {
+      controls.enabled = !event.value;
+    });
+    scene.add(secondBrainTransformControls);
+    
+    console.log("Transform controls initialized successfully");
+  } catch (error) {
+    console.error("Error initializing transform controls:", error);
+  }
+}
+
+// function initTransformControls() {
+//   try {
+//     console.log("Initializing transform controls");
+//     console.log("Camera:", camera);
+//     console.log("Renderer:", renderer);
+//     console.log("DOM Element:", renderer.domElement);
+    
+//     // Test with just one control first
+//     mainBrainTransformControls = new TransformControls(camera, renderer.domElement);
+//     console.log("Transform controls created successfully");
+    
+//     scene.add(mainBrainTransformControls);
+//     console.log("Transform controls added to scene");
+//   } catch (error) {
+//     console.error("Error initializing transform controls:", error);
+//   }
+// }
 
 function loadAndDrawCortexModel(){
     removeExtraItemMesh();
@@ -183,21 +248,28 @@ function showExtraItem(){
     updateExtraItemMeshVisibility();
 }
 
-function removeExtraItemMesh(){
-    if (extraItemMesh){
-        deleteMesh(extraItemMesh);
-        extraItemMesh = null;
-    }
-    if (secondBrainMesh){
-        deleteMesh(secondBrainMesh);
-        secondBrainMesh = null;
-    }
-
-        // Ensure the group is also cleaned up
-    if (dualBrainGroup) {
-        scene.remove(dualBrainGroup);
-        dualBrainGroup = null;
-    }
+function removeExtraItemMesh() {
+  // Detach transform controls
+  if (mainBrainControlsEnabled) {
+    mainBrainTransformControls.detach();
+    mainBrainControlsEnabled = false;
+  }
+  
+  if (secondBrainControlsEnabled) {
+    secondBrainTransformControls.detach();
+    secondBrainControlsEnabled = false;
+  }
+  
+  // Remove meshes
+  if (extraItemMesh) {
+    deleteMesh(extraItemMesh);
+    extraItemMesh = null;
+  }
+  
+  if (secondBrainMesh) {
+    deleteMesh(secondBrainMesh);
+    secondBrainMesh = null;
+  }
 }
 
 function updateExtraItemMaterial(){
@@ -229,59 +301,57 @@ function updateExtraItemMesh(){
     }
 }
 
-function toggleTransformControls(mode) {
-    if (!extraItemMesh) { return; }
+// Toggle controls for the selected brain
+
+function toggleTransformControls(mode, brainIndex = 0) {
+  console.log(`Toggling ${mode} mode for brain ${brainIndex}`);
+  
+  try {
+    // Disable all controls first to avoid conflicts
+    if (mainBrainControlsEnabled) {
+      mainBrainTransformControls.detach();
+      mainBrainControlsEnabled = false;
+    }
     
-    if (!transformControlsEnabled) {
-        if (guiParams.extraItemMeshShape === 'dualBrain' && secondBrainMesh) {
-            // Create a group for dual brain mode
-            dualBrainGroup = new THREE.Group();
-            dualBrainGroup.add(extraItemMesh);
-            dualBrainGroup.add(secondBrainMesh);
-            
-            // Add the group to the scene
-            scene.add(dualBrainGroup);
-            
-            // Attach transform controls to the group
-            transformControls.attach(dualBrainGroup);
-        } else {
-            // Single brain mode
-            transformControls.attach(extraItemMesh);
-        }
-        transformControlsEnabled = true;
-    } else if (transformControls.mode == mode) {
-        disableTransformControls();
+    if (secondBrainControlsEnabled) {
+      secondBrainTransformControls.detach();
+      secondBrainControlsEnabled = false;
     }
-    transformControls.setMode(mode);
+    
+    // Now enable the requested control
+    if (brainIndex === 0 && extraItemMesh) {
+      mainBrainTransformControls.attach(extraItemMesh);
+      mainBrainTransformControls.setMode(mode);
+      mainBrainControlsEnabled = true;
+    } else if (brainIndex === 1 && secondBrainMesh) {
+      secondBrainTransformControls.attach(secondBrainMesh);
+      secondBrainTransformControls.setMode(mode);
+      secondBrainControlsEnabled = true;
+    }
+  } catch (error) {
+    console.error("Error toggling transform controls:", error);
+  }
 }
 
-function disableTransformControls() {
-    if (transformControlsEnabled) {
-        transformControls.detach();
-        
-        // If we have a dual brain group, we need to handle it specially
-        if (dualBrainGroup) {
-            // Remove the meshes from the group but keep them in the scene
-            if (extraItemMesh) scene.add(extraItemMesh);
-            if (secondBrainMesh) scene.add(secondBrainMesh);
-            
-            // Remove the group from the scene
-            scene.remove(dualBrainGroup);
-            dualBrainGroup = null;
-        }
-        
-        transformControlsEnabled = false;
+// Disable controls for the specified brain
+function disableTransformControls(brainIndex = 0) {
+    if (brainIndex === 0 && mainBrainControlsEnabled) {
+        mainBrainTransformControls.detach();
+        mainBrainControlsEnabled = false;
+    } else if (brainIndex === 1 && secondBrainControlsEnabled) {
+        secondBrainTransformControls.detach();
+        secondBrainControlsEnabled = false;
     }
 }
 
-function translateModeTransformControls(){
-    toggleTransformControls('translate');
+function translateModeTransformControls(brainIndex = 0){
+    toggleTransformControls('translate', brainIndex);
 }
-function rotateModeTransformControls(){
-    toggleTransformControls('rotate');
+function rotateModeTransformControls(brainIndex = 0){
+    toggleTransformControls('rotate', brainIndex);
 }
-function scaleModeTransformControls(){
-    toggleTransformControls('scale');
+function scaleModeTransformControls(brainIndex = 0){
+    toggleTransformControls('scale', brainIndex);
 }
 
 function handleTransformControlChangeEvent(event){
@@ -323,5 +393,7 @@ export {
     disableTransformControls,
     handleTransformControlChangeEvent,
     updateTransformControlHistory,
-    undoTransformControls
+    undoTransformControls,
+    initTransformControls,
+    toggleTransformControls
 };
